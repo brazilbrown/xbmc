@@ -243,7 +243,7 @@ bool CDVDPlayerSubtitle::AcceptsData()
   return m_pOverlayContainer->GetSize() < 5;
 }
 
-void CDVDPlayerSubtitle::GetCurrentSubtitle(CStdString& strSubtitle, double pts)
+void CDVDPlayerSubtitle::GetCurrentSubtitle(CStdString& strSubtitle, double pts, double& start, double& stop)
 {
   strSubtitle = "";
 
@@ -261,6 +261,8 @@ void CDVDPlayerSubtitle::GetCurrentSubtitle(CStdString& strSubtitle, double pts)
       && (pOverlay->iPTSStartTime <= pts)
       && (pOverlay->iPTSStopTime >= pts || pOverlay->iPTSStopTime == 0LL))
       {
+		stop = pOverlay->iPTSStopTime;
+		start = pOverlay->iPTSStartTime;
         CDVDOverlayText::CElement* e = ((CDVDOverlayText*)pOverlay)->m_pHead;
         while (e)
         {

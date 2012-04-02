@@ -3487,12 +3487,25 @@ bool CDVDPlayer::HasMenu()
 
 bool CDVDPlayer::GetCurrentSubtitle(CStdString& strSubtitle)
 {
+	double ignore;
+	return GetCurrentSubtitleInfo(strSubtitle, ignore, ignore);
+}
+
+bool CDVDPlayer::GetCurrentSubtitleInfo(CStdString& strSubtitle, double& duration, double& current)
+{
   double pts = m_clock.GetClock();
 
   if (m_pInputStream && m_pInputStream->IsStreamType(DVDSTREAM_TYPE_DVD))
     return false;
 
-  m_dvdPlayerSubtitle.GetCurrentSubtitle(strSubtitle, pts - m_dvdPlayerVideo.GetSubtitleDelay());
+  double start = 0;
+  double stop = 0;
+  m_dvdPlayerSubtitle.GetCurrentSubtitle(strSubtitle, pts - m_dvdPlayerVideo.GetSubtitleDelay(), start, stop);
+  
+  if (current != NULL)
+	current = pts - start;
+  if (duration != NULL)
+	duration = stop - start;
   
   // In case we stalled, don't output any subs
   if ((m_dvdPlayerVideo.IsStalled() && HasVideo()) || (m_dvdPlayerAudio.IsStalled() && HasAudio()))

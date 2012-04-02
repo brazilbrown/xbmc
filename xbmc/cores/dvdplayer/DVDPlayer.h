@@ -217,6 +217,7 @@ public:
   virtual bool GetStreamDetails(CStreamDetails &details);
 
   virtual bool GetCurrentSubtitle(CStdString& strSubtitle);
+  virtual bool GetCurrentSubtitleInfo(CStdString& strSubtitle, double& duration, double& current);
 
   virtual CStdString GetPlayerState();
   virtual bool SetPlayerState(CStdString state);

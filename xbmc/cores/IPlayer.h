@@ -118,6 +118,10 @@ public:
   virtual bool GetSubtitleExtension(CStdString &strSubtitleExtension){ return false;};
   virtual int  AddSubtitle(const CStdString& strSubPath) {return -1;};
 
+  //TODO: set default to false
+  virtual bool GetMuteProfanity() {return true;}
+  virtual void SetMuteProfanity(bool bMute){}
+
   virtual int  GetAudioStreamCount()  { return 0; }
   virtual int  GetAudioStream()       { return -1; }
   virtual void GetAudioStreamName(int iStream, CStdString &strStreamName){};
@@ -164,6 +168,7 @@ public:
   virtual bool OnAction(const CAction &action) { return false; };
 
   virtual bool GetCurrentSubtitle(CStdString& strSubtitle) { strSubtitle = ""; return false; }
+  virtual bool GetCurrentSubtitleInfo(CStdString& strSubtitle, double& duration, double &current){duration = 0; current = 0; return GetCurrentSubtitle(strSubtitle);}
   //returns a state that is needed for resuming from a specific time
   virtual CStdString GetPlayerState() { return ""; };
   virtual bool SetPlayerState(CStdString state) { return false;};

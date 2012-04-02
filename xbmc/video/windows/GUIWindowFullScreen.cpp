@@ -56,6 +56,7 @@
 
 #include <stdio.h>
 #include <algorithm>
+#include <map>
 #ifdef __APPLE__
 #include "linux/LinuxResourceCounter.h"
 #endif
@@ -122,6 +123,7 @@ CGUIWindowFullScreen::CGUIWindowFullScreen(void)
   m_timeCodeShow = false;
   m_timeCodeTimeout = 0;
   m_bShowViewModeInfo = false;
+  m_bPMute = false;
   m_dwShowViewModeTimeout = 0;
   m_bShowCurrentTime = false;
   m_subsLayout = NULL;
@@ -968,9 +970,105 @@ void CGUIWindowFullScreen::Process(unsigned int currentTime, CDirtyRegionList &d
 
 void CGUIWindowFullScreen::Render()
 {
-  if (g_application.m_pPlayer)
+  if (g_application.m_pPlayer) 
+  {
     RenderTTFSubtitles();
+    MuteProfanity();
+  }
   CGUIWindow::Render();
+}
+
+void CGUIWindowFullScreen::MuteProfanity()
+{
+	if ((g_application.GetCurrentPlayer() == EPC_MPLAYER || g_application.GetCurrentPlayer() == EPC_DVDPLAYER) &&
+		g_application.m_pPlayer->GetMuteProfanity())
+    {
+	  bool isMuted = g_application.IsMuted();
+	  if (isMuted && !m_bPMute) return;
+	  
+	  CStdString subtitleText = "How now brown cow";
+	  double duration;
+	  double current;
+	  if (g_application.m_pPlayer->GetCurrentSubtitleInfo(subtitleText, duration, current))
+      {
+
+		if ((duration <= 0 || current <= 0 || subtitleText.IsEmpty()) && m_bPMute)
+		{
+			CLog::Log(LOGWARNING,"UnMuting because there was an error getting subtitles");
+			g_application.getApplicationMessenger().SendAction(CAction(ACTION_MUTE));
+			m_bPMute = false;
+			return;
+		}
+		/* Ignored characters for timing */
+		subtitleText.Replace("\\r", "");
+        subtitleText.Replace("\r", "");
+        subtitleText.Replace("\\n", "");
+        subtitleText.Replace("\n", "");
+        subtitleText.Replace("<br>", "");
+        subtitleText.Replace("\\N", "");
+        subtitleText.Replace("<i>", "");
+        subtitleText.Replace("</i>", "");
+        subtitleText.Replace("<b>", "");
+        subtitleText.Replace("</b>", "");
+        subtitleText.Replace("<u>", "");
+        subtitleText.Replace("&nbsp;", "");
+        subtitleText.Replace("</u>", "");
+        subtitleText.Replace("</i", "");
+        subtitleText.Replace("</b", "");
+        subtitleText.Replace("</u", "");
+
+		/* Add extra timing for certain characters */
+		subtitleText.Replace(" ", "  ");
+		subtitleText.Replace(".", ". ");
+		subtitleText.Replace(",", ", ");
+		subtitleText.Replace(";", "; ");
+		subtitleText.Replace(":", ": ");
+		subtitleText.Replace("<p>", "  ");
+        subtitleText.Replace("<P>", "  ");
+		subtitleText.Trim();
+
+		double durationPerChar = duration / subtitleText.length();
+		double muteStart = -1;
+		double muteEnd = -1;
+
+		multimap<CStdString, int> m;
+
+		int indexOfSware = subtitleText.ToLower().Find("skeeter");
+		if (indexOfSware == -1)
+		{
+			if (m_bPMute) 
+			{
+				CLog::Log(LOGWARNING,"UnMuting because no curse words found");
+				g_application.getApplicationMessenger().SendAction(CAction(ACTION_MUTE));
+				m_bPMute = false;
+			}
+			return;
+		}
+
+	    double muteDuration = 8 * durationPerChar;
+	    muteStart = (indexOfSware -1) * durationPerChar;
+		double muteEnd = muteStart + muteDuration;
+
+		if (current >= muteStart && current <= muteEnd)
+		{
+			if (!g_application.IsMuted())
+			{
+				CLog::Log(LOGWARNING, "Muting. Line: %s", subtitleText.c_str());
+				CLog::Log(LOGWARNING, "current: %d, subtitle duration: %d, muteDuration: %d, muteStart: %d, muteEnd: %d", 
+					current, duration, muteDuration, muteStart, muteEnd);
+				g_application.getApplicationMessenger().SendAction(CAction(ACTION_MUTE));
+				m_bPMute = true;
+			}
+		}
+		else if (g_application.IsMuted())
+		{
+			CLog::Log(LOGWARNING, "UnMuting. Line: '%s'\n - current: %d, subtitle duration: %d, muteDuration: %d, muteStart: %d, muteEnd: %d", 
+			subtitleText.c_str(), current, duration, muteDuration, muteStart, muteEnd);
+			g_application.getApplicationMessenger().SendAction(CAction(ACTION_MUTE));
+			m_bPMute = false;
+		}
+	  }
+	}
 }
 
 void CGUIWindowFullScreen::RenderTTFSubtitles()
@@ -986,7 +1084,7 @@ void CGUIWindowFullScreen::RenderTTFSubtitles()
     CStdString subtitleText = "How now brown cow";
     if (g_application.m_pPlayer->GetCurrentSubtitle(subtitleText))
     {
-      // Remove HTML-like tags from the subtitles until
+      // Remove HTML-like tags from the subtitles
       subtitleText.Replace("\\r", "");
       subtitleText.Replace("\r", "");
       subtitleText.Replace("\\n", "[CR]");

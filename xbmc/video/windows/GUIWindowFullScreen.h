@@ -51,6 +51,7 @@ private:
   void RenderTTFSubtitles();
   void SeekChapter(int iChapter);
   void ToggleOSD();
+  void MuteProfanity();
 
   enum SEEK_TYPE { SEEK_ABSOLUTE, SEEK_RELATIVE };
   enum SEEK_DIRECTION { SEEK_FORWARD, SEEK_BACKWARD };
@@ -81,6 +82,7 @@ private:
   CGUIInfoBool m_showCodec;
 
   bool m_bShowCurrentTime;
+  bool m_bPMute;
 
   bool m_timeCodeShow;
   unsigned int m_timeCodeTimeout;
